@@ -15,14 +15,75 @@
     <div class="ttt-x-piece"></div>
     <div class="ttt-o-piece"></div>
 
-    <div class="ttt-board">
-      <div class="ttt-tile"></div>
-      <div class="ttt-tile"></div>
-      <div class="ttt-tile"></div> 
-    </div>
-
     <div class="game-container">
     </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.14.7/react.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.14.7/react-dom.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.23/browser.min.js"></script>
+
+    <!-- <script src="script.js" type="text/babel"></script> -->
+
+    <script type="text/babel">
+    (function () {
+
+      var Tile = React.createClass({
+        handleClick: function () {
+          /* 
+          placePiece() from actions
+          this.props.row
+          this.props.col
+          */
+        },
+
+        render: function () {
+          return (
+            <div className='ttt-tile' onClick={this.handleClick}></div>
+          );
+        }
+      });
+
+      var Board = React.createClass({
+        render: function () {
+          return (
+            <div className="ttt-board">
+              {this.props.matrix.map(function (row, rowIdx) {
+                return (
+                  <div key={rowIdx} className="ttt-board-row">
+                    {row.map(function (col, colIdx) {
+                      return (
+                        <Tile key={colIdx} row={rowIdx} col={colIdx} />
+                      );
+                    }.bind(this))}
+                  </div>
+                ); 
+              }.bind(this))}
+            </div>
+          );
+        }
+      });
+
+      function generateSquareMatrix(num, value) {
+        var arr = [], row, col;
+        for(row = 0; row < num; row++) {
+          arr[row] = [];
+          for(col = 0; col < num; col++) {
+            arr[row][col] = value;
+          }
+        }
+
+        return arr;
+      }
+
+      ReactDOM.render(
+        <Board matrix={generateSquareMatrix(3, null)} />,
+        document.querySelectorAll('.game-container')[0]
+      );  
+
+    })();
+    </script>
+
+
   </body>
 
 </html>
