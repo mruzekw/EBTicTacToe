@@ -24,6 +24,70 @@
     <script type="text/babel">
     (function () {
 
+      // Config
+
+      var size = 3;
+
+      // Helpers
+
+      function generateSquareMatrix(num, value) {
+        var arr = [], row, col;
+        for(row = 0; row < num; row++) {
+          arr[row] = [];
+          for(col = 0; col < num; col++) {
+            arr[row][col] = value;
+          }
+        }
+
+        return arr;
+      }
+
+      function hasPlayerWon(board, row, col, piece) {
+        // Check row
+        for (let i = 0; i < size; i++) {
+          if (board[i][col] !== piece) break;
+          if (i === size - 1) return true;
+        }
+
+        // Check column
+        for (let i = 0; i < size; i++) {
+          if (board[row][i] !== piece) break;
+          if (i === size - 1) return true;
+        }
+        
+        // Check diagonal
+        for (let i = 0; i < size; i++) {
+          if (board[i][i] !== piece) break;
+          if (i === size - 1) return true;
+        }
+
+        // Check anti-diagonal
+        for (let i = 0; i < size; i++) {
+          if (board[i][(size - 1) - i] !== piece) break;
+          if (i === size - 1) return true;
+        }
+
+        return false;
+      }
+
+      // Actions
+
+      function setPiece(row, col, piece) {
+        return {
+          type: 'SET_PIECE',
+          row, col, piece
+        }
+      }
+
+      function resetGame(size) {
+        return {
+          type: 'RESET_GAME',
+          size
+        }
+      }
+
+      // Reducers
+
       /**
        * State of the board is reprsented by an array of tile states
        * A tile can be in three states:
@@ -32,42 +96,72 @@
        *   - O: 2
        */
 
-      let reducer = (previousState, action) => {
+      let nextBoard = (previousBoard = generateSquareMatrix(size, null), action) => {
         switch (action.type) {
           case 'SET_PIECE':
-            return Object.assign({}, previousState, {
-              currentPlayer: previousState.currentPlayer === 1 ? 2 : 1,
-              board: previousState.board.map((row, rowIdx) => {
-                return rowIdx === action.row ?
-                  row.map((col, colIdx) => {
-                    return colIdx === action.col ? action.piece : col
-                  }) :
-                  row
-              })
+            return previousBoard.map((row, rowIdx) => {
+              return rowIdx === action.row ?
+                row.map((col, colIdx) => {
+                  return colIdx === action.col ? action.piece : col
+                }) :
+                row
             });
+
+          case 'RESET_GAME':
+            return generateSquareMatrix(action.size, null);
+
           default:
-            return previousState;
+            return previousBoard;
+        }
+      };
+
+
+      let nextCurrentPlayer = (previousPlayer = 1, action) => {
+        switch (action.type) {
+          case 'SET_PIECE':
+            return previousPlayer === 1 ? 2 : 1;
+          case 'RESET_GAME':
+            return 1;
+          default:
+            return previousPlayer;
+        }
+      };
+
+      let nextNumOfMoves = (previousNumOfMoves = 0, action) => {
+        switch (action.type) {
+          case 'SET_PIECE':
+            return previousNumOfMoves + 1;
+          case 'RESET_GAME':
+            return 0;
+          default:
+            return previousNumOfMoves;
+        }
+      };
+
+      let nextPlayerWon = (previousPlayerWon = null, action, board) => {
+        switch (action.type) {
+          case 'SET_PIECE':
+            return hasPlayerWon(board, action.row, action.col, action.piece) ? action.piece : null;
+          case 'RESET_GAME':
+            return null;
+          default:
+            return previousPlayerWon;
         }
       }
-      
-      function setPiece(row, col, piece) {
-        return {
-          type: 'SET_PIECE',
-          row, col, piece
-        }
+
+      let reducer = (previousState = {}, action) => {
+        let board = nextBoard(previousState.board, action);
+        let currentPlayer = nextCurrentPlayer(previousState.currentPlayer, action);
+        let numOfMoves = nextNumOfMoves(previousState.numOfMoves, action);
+
+        let playerWon = nextPlayerWon(previousState.playerWon, action, board);
+
+        return { board, currentPlayer, numOfMoves, playerWon };
       }
 
-      let store = Redux.createStore(reducer, {
-        board: generateSquareMatrix(3, null),
-        currentPlayer: 1
-      });
+      let store = Redux.createStore(reducer);
 
-      // Log the initial state
-      console.log(store.getState())
-
-      let unsubscribe = store.subscribe(() =>
-        console.log(store.getState())
-      )
+      // Components
 
       class Tile extends React.Component {
         render() {
@@ -88,36 +182,41 @@
       class Board extends React.Component {
         render() {
           return (
+          <div>
+            <div className={'ttt-message ttt-win-message ' + (!this.props.playerWon ? 'is-hidden' : '')}>
+              You win, player {this.props.playerWon}!
+              <button className='recall-restart-btn' onClick={() => { store.dispatch(resetGame(size)) }}>Play again!</button> 
+            </div>
+            <div className={'ttt-message ttt-draw-message ' + ((!this.props.playerWon && this.props.numOfMoves === size * size)  ? '' : 'is-hidden' )}>
+              Wow, a draw. Bring it to the next level.
+              <button className='ttt-restart-btn' onClick={() => { store.dispatch(resetGame(size)) }}>Play again!</button> 
+            </div>
             <div className='ttt-board'>
-              {this.props.matrix.map(function (row, rowIdx) {
+              {this.props.matrix.map((row, rowIdx) => {
                 return (
-                  <div key={rowIdx} className="ttt-board-row">
-                    {row.map(function (col, colIdx) {
+                  <div key={rowIdx} className='ttt-board-row'>
+                    {row.map((col, colIdx) => {
                       return (
                         <Tile key={colIdx} 
                               piece={col}  
-                              onClick={() => store.dispatch(setPiece(rowIdx, colIdx, this.props.currentPlayer))} />
+                              onClick={() => {
+                                if (this.props.playerWon) return;
+                                store.dispatch(setPiece(rowIdx, colIdx, this.props.currentPlayer));
+                              }} />
                       );
-                    }.bind(this))}
+                    })}
                   </div>
                 ); 
-              }.bind(this))}
+              })}
             </div>
+          </div>
           );
         }
       }
 
-      function generateSquareMatrix(num, value) {
-        var arr = [], row, col;
-        for(row = 0; row < num; row++) {
-          arr[row] = [];
-          for(col = 0; col < num; col++) {
-            arr[row][col] = value;
-          }
-        }
-
-        return arr;
-      }
+      // TODO Create composite TicTacToe component <Message> + <Board>
+      // TODO Refine styling
+      // TODO (if time) Reset with different size
 
       var TicTacToe = ReactRedux.connect(
         function mapStateToProps(state) {
