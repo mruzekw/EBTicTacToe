@@ -17,23 +17,62 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.14.7/react.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.14.7/react-dom.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/redux/3.3.1/redux.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-redux/4.4.0/react-redux.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.23/browser.min.js"></script>
 
     <script type="text/babel">
     (function () {
 
-      class Tile extends React.Component {
-        handleClick() {
-          /* 
-          placePiece() from actions
-          this.props.row
-          this.props.col
-          */
-        }
+      /**
+       * State of the board is reprsented by an array of tile states
+       * A tile can be in three states:
+       *   - Blank: null
+       *   - X: 1
+       *   - O: 2
+       */
 
+      let reducer = (previousState, action) => {
+        switch (action.type) {
+          case 'SET_PIECE':
+            return Object.assign({}, previousState, {
+              currentPlayer: previousState.currentPlayer === 1 ? 2 : 1,
+              board: previousState.board.map((row, rowIdx) => {
+                return rowIdx === action.row ?
+                  row.map((col, colIdx) => {
+                    return colIdx === action.col ? action.piece : col
+                  }) :
+                  row
+              })
+            });
+          default:
+            return previousState;
+        }
+      }
+      
+      function setPiece(row, col, piece) {
+        return {
+          type: 'SET_PIECE',
+          row, col, piece
+        }
+      }
+
+      let store = Redux.createStore(reducer, {
+        board: generateSquareMatrix(3, null),
+        currentPlayer: 1
+      });
+
+      // Log the initial state
+      console.log(store.getState())
+
+      let unsubscribe = store.subscribe(() =>
+        console.log(store.getState())
+      )
+
+      class Tile extends React.Component {
         render() {
           return (
-            <div className='ttt-tile' onClick={this.handleClick}>
+            <div className='ttt-tile' onClick={this.props.onClick}>
               {(() => {
                 switch (this.props.piece) {
                   case 1:  return <div className='ttt-x-piece'></div>;
@@ -49,13 +88,15 @@
       class Board extends React.Component {
         render() {
           return (
-            <div className="ttt-board">
+            <div className='ttt-board'>
               {this.props.matrix.map(function (row, rowIdx) {
                 return (
                   <div key={rowIdx} className="ttt-board-row">
                     {row.map(function (col, colIdx) {
                       return (
-                        <Tile key={colIdx} row={rowIdx} col={colIdx} piece={2} />
+                        <Tile key={colIdx} 
+                              piece={col}  
+                              onClick={() => store.dispatch(setPiece(rowIdx, colIdx, this.props.currentPlayer))} />
                       );
                     }.bind(this))}
                   </div>
@@ -78,10 +119,18 @@
         return arr;
       }
 
+      var TicTacToe = ReactRedux.connect(
+        function mapStateToProps(state) {
+          return { matrix: state.board, ...state };
+        }
+      )(Board);
+
       ReactDOM.render(
-        <Board matrix={generateSquareMatrix(3, null)} />,
+        <ReactRedux.Provider store={store}>
+          <TicTacToe />
+        </ReactRedux.Provider>,
         document.querySelectorAll('.game-container')[0]
-      );  
+      )
 
     })();
     </script>
