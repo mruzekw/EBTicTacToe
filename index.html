@@ -43,6 +43,8 @@
       }
 
       function hasPlayerWon(board, row, col, piece) {
+        var size = board.length;
+
         // Check row
         for (let i = 0; i < size; i++) {
           if (board[i][col] !== piece) break;
@@ -183,14 +185,6 @@
         render() {
           return (
           <div>
-            <div className={'ttt-message ttt-win-message ' + (!this.props.playerWon ? 'is-hidden' : '')}>
-              You win, player {this.props.playerWon}!
-              <button className='recall-restart-btn' onClick={() => { store.dispatch(resetGame(size)) }}>Play again!</button> 
-            </div>
-            <div className={'ttt-message ttt-draw-message ' + ((!this.props.playerWon && this.props.numOfMoves === size * size)  ? '' : 'is-hidden' )}>
-              Wow, a draw. Bring it to the next level.
-              <button className='ttt-restart-btn' onClick={() => { store.dispatch(resetGame(size)) }}>Play again!</button> 
-            </div>
             <div className='ttt-board'>
               {this.props.matrix.map((row, rowIdx) => {
                 return (
@@ -214,15 +208,38 @@
         }
       }
 
-      // TODO Create composite TicTacToe component <Message> + <Board>
-      // TODO Refine styling
-      // TODO (if time) Reset with different size
+      class Message extends React.Component {
+        render() {
+          return (
+            <div>
+              <div className={'ttt-message ttt-win-message ' + (!this.props.playerWon ? 'is-hidden' : '')}>
+                You win, player {this.props.playerWon}!
+                <button className='recall-restart-btn' onClick={() => { store.dispatch(resetGame(size)) }}>Play again!</button> 
+              </div>
+              <div className={'ttt-message ttt-draw-message ' + ((!this.props.playerWon && this.props.numOfMoves === size * size)  ? '' : 'is-hidden' )}>
+                Wow, a draw. Bring it to the next level: 
+                <button className='ttt-restart-btn' onClick={() => { store.dispatch(resetGame(size + 1)) }}>Play again!</button> 
+              </div>
+            </div>
+          );
 
-      var TicTacToe = ReactRedux.connect(
+        }
+      }
+
+      var ConnectedBoard = ReactRedux.connect(
         function mapStateToProps(state) {
           return { matrix: state.board, ...state };
         }
       )(Board);
+
+      var ConnectedMessage = ReactRedux.connect((state) => state)(Message);
+
+      var TicTacToe = () => (
+        <div>
+          <ConnectedMessage />
+          <ConnectedBoard />
+        </div>
+      )
 
       ReactDOM.render(
         <ReactRedux.Provider store={store}>
