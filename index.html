@@ -210,15 +210,16 @@
 
       class Message extends React.Component {
         render() {
+          var currentSize = this.props.board.length;
           return (
             <div>
               <div className={'ttt-message ttt-win-message ' + (!this.props.playerWon ? 'is-hidden' : '')}>
                 You win, player {this.props.playerWon}!
                 <button className='recall-restart-btn' onClick={() => { store.dispatch(resetGame(size)) }}>Play again!</button> 
               </div>
-              <div className={'ttt-message ttt-draw-message ' + ((!this.props.playerWon && this.props.numOfMoves === size * size)  ? '' : 'is-hidden' )}>
+              <div className={'ttt-message ttt-draw-message ' + ((!this.props.playerWon && this.props.numOfMoves === currentSize * currentSize)  ? '' : 'is-hidden' )}>
                 Wow, a draw. Bring it to the next level: 
-                <button className='ttt-restart-btn' onClick={() => { store.dispatch(resetGame(size + 1)) }}>Play again!</button> 
+                <button className='ttt-restart-btn' onClick={() => { store.dispatch(resetGame(currentSize + 1)) }}>Play again!</button> 
               </div>
             </div>
           );
